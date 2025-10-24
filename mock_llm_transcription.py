@@ -19,22 +19,71 @@ def mock_llm_call(audio_file_path: str) -> Dict[str, Any]:
         Dictionary containing the structured transcription response
     """
 
-    # System prompt from the image
+    # Enhanced system prompt optimized for Gemini 2.5 Flash
     system_prompt = """
-    Transcribe the following audio file accurately and return the information described in the following instructions.
-    **Instructions:**
-    - **Task 1 (Transcript):** Provide a verbatim transcript of the following conversation. Format it with speaker labels (e.g., 'Speaker 1:', 'Speaker 2:').
-    - **Task 2 (Summary):** Include the start and end time of every speech in the conversation.
-    - **Guidance:** Whenever possible, identify who is speaking in all the transcript, the summary, and labels. For speakers that cannot be identified, use generic labels like 'Speaker 1', 'Speaker 2', etc.
-    
-    Example of the generated fragment for every speech:
+    You are an expert audio transcription specialist. Transcribe the provided audio file with extreme precision and return ONLY valid JSON following the exact schema provided.
+
+    **CRITICAL INSTRUCTIONS FOR GEMINI 2.5 FLASH:**
+
+    **TIMESTAMP ACCURACY:**
+    - Use PRECISE timestamps in MM:SS format (e.g., "01:23", "00:05", "12:47")
+    - NEVER use placeholder or estimated timestamps
+    - Calculate exact start and end times from the actual audio
+    - Ensure timestamps are sequential and non-overlapping
+    - Each speech segment must have distinct start/end times
+    - Validate that end_timestamp > start_timestamp for every segment
+
+    **UTTERANCE SEGMENTATION:**
+    - Break speech into NATURAL conversation turns, not arbitrary chunks
+    - Start a NEW utterance when:
+      * Speaker changes
+      * Natural pause longer than 2 seconds occurs
+      * Complete thought/sentence ends with clear pause
+      * Topic or context shifts significantly
+    - DO NOT split single sentences across multiple utterances
+    - DO NOT create artificial breaks mid-sentence
+    - Each utterance should contain complete thoughts or natural speech units
+    - Preserve the natural flow of conversation
+
+    **SPEAKER IDENTIFICATION:**
+    - Use consistent speaker labels: SPEAKER_00, SPEAKER_01, SPEAKER_02, etc.
+    - Maintain same speaker ID throughout the conversation
+    - Identify speaker roles when clear: ADVISOR, CLIENT, AGENT, CUSTOMER, etc.
+    - If role unclear, use UNKNOWN as speaker_role
+
+    **OUTPUT FORMAT:**
+    - Return ONLY valid JSON matching the exact schema
+    - NO additional text, explanations, or markdown formatting
+    - Ensure all JSON is properly escaped and formatted
+    - Validate JSON structure before returning
+
+    **EXAMPLE OUTPUT STRUCTURE:**
     {
-        "speaker_name": "SPEAKER_00",
-        "speech_start_timestamp": "00:07",
-        "speech_end_timestamp": "00:10",
-        "speech_transcription": "I just missed your call there. How can I help?",
-        "speaker_role": "ADVISOR"
+        "speaker_turns": [
+            {
+                "speaker_name": "SPEAKER_00",
+                "speech_start_timestamp": "00:01",
+                "speech_end_timestamp": "00:04",
+                "speech_transcription": "Hello, thank you for calling our support line.",
+                "speaker_role": "AGENT"
+            },
+            {
+                "speaker_name": "SPEAKER_01", 
+                "speech_start_timestamp": "00:05",
+                "speech_end_timestamp": "00:09",
+                "speech_transcription": "Hi, I need help with my account password reset.",
+                "speaker_role": "CUSTOMER"
+            }
+        ]
     }
+
+    **VALIDATION CHECKLIST:**
+    ✓ All timestamps are accurate and sequential
+    ✓ No utterances split unnaturally 
+    ✓ Speaker changes properly detected
+    ✓ Natural conversation flow preserved
+    ✓ Valid JSON format with proper escaping
+    ✓ All required fields present in each turn
     """
 
     # Mock response following the schema from the image
